@@ -46,18 +46,21 @@ Result computePaths(Node* tree, int idx) {
         }
     }
 
-    res.sum = tree[idx].value + maxSum;
-    res.path[0] = idx;
-    for (int i = 0; i < maxChildRes.pathLength; ++i) {
-        res.path[i + 1] = maxChildRes.path[i];
+    #pragma omp critical
+    {
+        res.sum = tree[idx].value + maxSum;
+        res.pathLength = maxChildRes.pathLength + 1;
+        res.path[0] = idx;
+        for (int i = 0; i < maxChildRes.pathLength; ++i) {
+            res.path[i + 1] = maxChildRes.path[i];
+        }
     }
-    res.pathLength = maxChildRes.pathLength + 1;
 
     return res;
 }
 
 int main(int argc, char** argv) {
-    // printf("Compilado! OK?!\n");
+    // printf("Compilou\n");
 
     int N;
     scanf("%d", &N);
@@ -80,11 +83,15 @@ int main(int argc, char** argv) {
     Result localRes = computePaths(tree, 0);
     Result globalRes;
 
-    MPI_Reduce(&localRes, &globalRes, 1, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    MPI_Reduce(&localRes.sum, &globalRes.sum, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(localRes.path, globalRes.path, MAX_NODES, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&localRes.pathLength, &globalRes.pathLength, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
 
     if (rank == 0) {
         printf("Max Sum: %.2lf\n", globalRes.sum);
-        printf("Path: ");
+        printf("Path (size - %d): ", globalRes.pathLength);
         for (int i = 0; i < globalRes.pathLength; ++i) {
             printf("%d ", globalRes.path[i] + 1);
         }
@@ -95,4 +102,5 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
 }
+
 
