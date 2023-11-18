@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
     if (rank == 0) {
         printf("Max Sum: %.2lf\n", globalRes.sum);
-        printf("Path (size - %d): ", globalRes.pathLength);
+        printf("Path: ");
         for (int i = 0; i < globalRes.pathLength; ++i) {
             printf("%d ", globalRes.path[i] + 1);
         }
